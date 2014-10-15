@@ -1,4 +1,7 @@
 MagiPen
 =======
 
-data model + screen layout = application,  with the Magi standard format, MagiPen provide data modeling and screen design GUI tool, and a launcher to run.
+Data model + screen layout = application, MagiPen define a standard format for them, and implement below 3:
+  MagiModeling for data modeling;
+  MagiLayout for screen design;
+  MagiLauncher to deploy and run.
