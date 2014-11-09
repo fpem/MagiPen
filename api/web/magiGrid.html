@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="res/bootstrap/css/bootstrap.css">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="res/bootstrap/css/bootstrap-theme.css">
+    <style>
+        table.table tbody tr.active.selected td{
+            background-color: #428bca;
+        }
+        table.table tbody tr.selected td{
+            background-color: #428bca;
+        }
+        div.magiGrid thead span{
+            width:8px;margin-left:0;display: inline-block;
+        }
+    </style>
+
+    <script src="res/jquery-2.1.1.min.js"></script>
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="res/bootstrap/js/bootstrap.min.js"></script>
+    <script>
+        function renderGrid(gridElement){
+            var $magiGrid= $(gridElement);
+            var dataModel= $magiGrid.data('dataModel');
+            var rows= $magiGrid.data('rows');
+            var pageNum= $magiGrid.data('pageNum');
+            var totalRow= $magiGrid.data('totalRow');
+            var pageSize= $magiGrid.data('pageSize');
+
+            $magiGrid.find('.alert').hide();
+            //render column header
+            if(! dataModel){
+                $magiGrid.find('.alert').html('Missing data definition.').show();
+                return;
+            }
+
+            var $theadTR= $magiGrid.find('thead tr').empty();
+            var $tbody= $magiGrid.find('tbody').empty();
+            for(var i=0;i< dataModel.columns.length; i++){
+                var colName= dataModel.columns[i].name;
+                $theadTR.append('<th onclick="sortMe(this)" data-key="'+ colName+ '"><a href="#">'+ colName+ '</a><span></span></th>');
+            }
+
+            //render rows
+            if(! rows){
+                $magiGrid.find('.alert').html('No record.').show();
+                return;
+            }
+            var $tbody= $magiGrid.find('tbody');
+            for(var j=0;j< rows.length; j++){
+                var r= '<tr>';
+                for(var i=0;i< dataModel.columns.length; i++){
+                    r+= '<td>'+ rows[j][dataModel.columns[i].name]+ '</td>';
+                }
+                $tbody.append(r);
+            }
+
+            //render pagination
+            rederPager($magiGrid.find('.pagination'), pageNum, pageSize, totalRow)
+
+            $('div.magiGrid tbody tr').click(function(){
+                $('div.magiGrid tbody tr').removeClass('selected');
+                $(this).toggleClass('selected');
+            });
+        }
+
+        function rederPager(elm, pageNum, pageSize, totalRow, groupSize){
+            var totalPage= Math.ceil(totalRow/pageSize);
+            if(!groupSize)
+                groupSize= 5;
+            var groupInx= Math.floor((pageNum-1)/groupSize);//start from 0
+
+            var $pager= $(elm).empty();
+            if(pageSize>= totalRow)
+                return;
+            var liList= '';
+            if(pageNum>1)
+                liList+= '<li><a href="#" onclick="jumpPage(this,1);"><span class="glyphicon glyphicon-step-backward"></span></a></li>';
+            else
+                liList+= '<li class="disabled"><span><span class="glyphicon glyphicon-step-backward"></span></span></li>';
+
+            if(groupInx>0)
+                liList+= '<li><a href="#" onclick="jumpPage(this,'+ (groupInx*groupSize) +');">&laquo;</a></li>';
+            else
+                liList+= '<li class="disabled"><span>&laquo;</span></li>';
+            for(var i=1; i<= groupSize; i++){
+                var p= groupInx * groupSize +i;
+                if( p<= totalPage && p>0){
+                    if(p == pageNum)
+                        liList+= '<li class="active"><span>'+ p +'</a></span>';
+                    else
+                        liList+='<li><a href="#" onclick="jumpPage(this,'+ p +');">'+ p +'</a></li>';
+                }
+            }
+            if(groupInx< Math.floor((totalPage-1)/groupSize))
+                liList+= '<li><a href="#" onclick="jumpPage(this,'+ ((groupInx+1)*groupSize+1) +');">&raquo;</a></li>';
+            else
+                liList+= '<li class="disabled"><span>&raquo;</span></li>';
+            if(pageNum< totalPage)
+                liList+= '<li><a href="#" onclick="jumpPage(this,'+totalPage+');"><span class="glyphicon glyphicon-step-forward"></span></a></li>';
+            else
+                liList+= '<li class="disabled"><span><span class="glyphicon glyphicon-step-forward"></span></span></li>';
+
+            $pager.append(liList);
+
+        }
+
+        function sortMe(thElm){
+            var $th= $(thElm);
+            var newSortOrder= 'asc';
+            if($th.find('span.dropup').length )
+                newSortOrder= 'desc';
+
+            $th.closest('thead').find('span.dropup span.caret').remove();
+            $th.closest('thead').find('span').removeClass('dropup caret');
+            if(newSortOrder== 'desc'){
+                $th.find('span').addClass('caret');
+            }else {
+                $th.find('span').addClass('dropup').append('<span class="caret"></span>');
+            }
+            //todo sort rows by this column asc
+            var col= $th.data('key');
+            sortData(col, newSortOrder);
+        }
+
+        function jumpPage(elm, page){
+            //alert('jumpPage to:'+ page);
+            var gridElement= $(elm).closest('.magiGrid');
+            gridElement.data('pageNum', page);
+            renderGrid(gridElement);
+        }
+
+        function sortData(col, sortOrder){
+        }
+
+        function getSelectRow(gridElement){
+            var $magiGrid= $(gridElement);
+            var rowIdxes= [];
+            $(gridElement).find('tbody tr.selected').each(function( index){
+                rowIdxes.push(index);
+            });
+            alert( rowIdxes);
+        }
+
+        function changeSearchField(me){
+            var $m= $(me);
+            var placeHolder= $m.text();
+            $m.closest('ul').find('li').removeClass('active');
+            $m.closest('li').addClass('active');
+            $(me).closest('div.input-group').find('input[type=text]').attr("placeholder", placeHolder);
+        }
+
+        function initMagiDropdown(){
+            $('select.magi-dropdown').each(function(){
+                var $d= $(this);
+                var values= $d.data('values');
+                for(var i=0; i<values.length; i++){
+                    $d.append('<option>'+ values[i] +'</option>');
+                }
+            });
+        }
+        function addCondition(me){
+            var $f= $(me).closest('form');
+            var opr= $f.find('select[name=opr]').val();
+            var c= '{'+ $f.find('select[name=field]').val() +'} '
+                +  opr;
+            if(opr!= 'isNull' && opr!= 'isNotNull') {
+                var term = $f.find('input[name=term]').val().trim();
+                if (term.length > 1)
+                    c += ' "' + term + '"';
+            }
+            var cs= $f.find('input[name=conditions]').val();
+            if(cs.length>0)
+                c= ' && '+ c;
+            $f.find('input[name=conditions]').val(cs + c);
+            $f.find('input[name=term]').val('');
+        }
+        function chgOpr(me){
+            var opr= $(me).val();
+            if(opr== 'isNull' || opr== 'isNotNull')
+                $(me).next('input').hide();
+            else
+                $(me).next('input').show();
+        }
+
+        $(function(){
+            renderGrid('.magiGrid');
+            initMagiDropdown();
+        });
+    </script>
+</head>
+<body>
+<div class="container magiGrid"
+     data-table="Resident" data-page-size='10' data-page-num='1'
+     data-searchable="true" data-addable="true" data-editable="true"  data-deletable="true" data-customizable="true"
+     data-data-model='{"name":"Resident", "columns":[{"name":"id","dataType":"ID"},{"name":"name","dataType":"CHAR"},{"name":"idCard","dataType":"CHAR"}]}'
+     data-rows='[{"id":1,"name":"Albert","idCard":"111111111"},{"id":2,"name":"Ben","idCard":"2222222"},{"id":3,"name":"Charlie","idCard":"33333333"},{"id":4,"name":"Denies","idCard":"4444444"},{"id":5,"name":"Ella","idCard":"55555"},{"id":6,"name":"Fram","idCard":"6666"},{"id":7,"name":"Gavin","idCard":"7777"},{"id":8,"name":"Hawk","idCard":"8888"},{"id":9,"name":"Inn","idCard":"99999"},{"id":10,"name":"John","idCard":"10000"}]'
+     data-total-row='180'>
+
+    <div class="row">
+        <div class="col-sm-6" role="heading">
+            <h2>Data list</h2>
+        </div>
+        <div class="col-sm-6 input-group" role="search" style="margin-top:25px;padding-right: 15px;">
+            <div class="input-group search-block">
+                <input type="text" class="form-control pull-right" style="width:250px;" placeholder="type name to search">
+                <div class="input-group-btn">
+                    <button type="button" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span></button>
+                    <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" style="padding-left: 5px;padding-right:5px;"><span class="caret"></span></button>
+                    <ul class="dropdown-menu dropdown-menu-right" role="menu">
+                        <li class="active"><a href="#" onclick="changeSearchField(this)">type Name to search</a></li>
+                        <li><a href="#" onclick="changeSearchField(this)">type Code to search</a></li>
+                        <li><a href="#" onclick="changeSearchField(this)">type ID Card to search</a></li>
+                    </ul>
+                </div><!-- /btn-group -->
+            </div>
+
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-hover" style="margin-bottom:5px;">
+            <thead>
+            <tr>
+            </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+        <div class="alert alert-danger" style="display:none" role="alert"></div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-6">
+            <button type="button" class="btn btn-primary">Create</button>
+            <button type="button" class="btn btn-primary">Edit</button>
+            <button type="button" class="btn btn-primary">Delete</button>
+        </div>
+        <div class="col-sm-6">
+            <ul class="pagination pull-right" role="navigation" style="margin:0;"></ul>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
