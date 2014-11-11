@@ -1,110 +1,152 @@
-///////// Magi elements ////////
-//MagiGrid
-var MagiGrid = function(element, dataTable, options){
-    this.element = element;
-    this.dataTable = dataTable;
-    this.options = jQuery.extend({}, this.defaults, options);
-    this.dataRows= [];
-};
-MagiGrid.prototype = {
-    // now we define the prototype
-    defaults: {
-        searchable: false,
-        sortable: true,
-        creatable: false,
-        editable: false,
-        deletable: false,
-        pageSizeOptions: [10,15,50,200],
-        columnCustomizable: false,
-        hiddenColumns: null,
-        searchableColumns: null,
-        columnsFormatter: null,
+var MagiDao = (function(){
+    //var MagiDefaultApp ;
+    var MagiDataModels = {}; //{app : {tables: {}, i18n:{}}
+    var MagiDataCache= {}; //todo create web socket to refresh data
+    //var MagiEndPoints= {};
+    checkEnv();
+    initData();
 
-        //below 5 for queryCriteria
-        pageNum: 1,
-        pageSize: 10,    // 0 for no pagination
-        criteria: null,
-        sortBy: null,
-        groupBy: null
-    },
-    operations: ["=","!=",">","<",">=","<=","isNull","isNotNull","startWith","endWith","contains"],
-    template:'',
-    captionTemplate: '<h2></h2><div class="tools"></div>',
-    pagerTemplate: '<ul class="pagination"><li><a href="#">«</a></li><li><a href="#">1</a></li><li><a href="#">2</a></li><li><a href="#">3</a></li><li><a href="#">4</a></li><li><a href="#">5</a></li><li><a href="#">6</a></li><li><a href="#">»</a></li></ul></div>',
-
-    updateData: function(){
-        //todo ajax load data
-        MagiDao.findDataList(this.dataTable, this.options, function(respData){
-            this.dataRows= respData;
-            this.render();
-        });
-    },
-
-    render: function(){
-        var tableElm= $(this.element).find('table');
-        if(!tableElm){
-            $(this.element).html('<div class="tableCaption"></div><div class="table-responsive"><table class="table"></table></div><div class="tablePager"></div>');
+    function MagiAjax(url, _settings){
+        var settings= $.extend({
+                cache:false,
+                dataType: 'json',
+                contentType: 'application/json',
+                type: 'GET'
+            },
+            _settings
+        );
+        var succHandle= settings.success;
+        settings.success= function(resp){
+            succHandle(resp);
+            //todo refresh cache for POST/PUT/DEL
         }
-        //render Caption bar
-        var tableCaption= $(this.element).find('.tableCaption');
-        tableCaption.html(captionTemplate);
-        tableCaption.find('h2').html(this.dataTable);
-        tableCaption.html(pagerTemplate);
-
-        //render table
-
-        if(this.dataRows.lenght>0 )
-
-        //render pager
-            var tablePager= $(this.element).find('.tablePager');
-
-    },
-
-    search: function(){
-
-    },
-    advSearch: function(){
-
-    },
-    addCondition: function(me){
-        var $f= $(me).closest('form');
-        var opr= $f.find('select[name=opr]').val();
-        var c= '{'+ $f.find('select[name=field]').val() +'} '
-            +  opr;
-        if(opr!= 'isNull' && opr!= 'isNotNull') {
-            var term = $f.find('input[name=term]').val().trim();
-            if (term.length > 1)
-                c += ' "' + term + '"';
+        var errHandle= settings.error;
+        settings.error= function(jqXHR, textStatus, errorThrown){
+            errHandle(jqXHR, textStatus, errorThrown);
+            //todo common error handle
         }
-        var cs= $f.find('input[name=conditions]').val();
-        if(cs.length>0)
-            c= ' && '+ c;
-        $f.find('input[name=conditions]').val(cs + c);
-        $f.find('input[name=term]').val('');
-    },
-    chgOpr: function(me){
-        var opr= $(me).val();
-        if(opr== 'isNull' || opr== 'isNotNull')
-            $(me).next('input').hide();
-        else
-            $(me).next('input').show();
-    },
-    changeSearchField: function(me){
-        var $m= $(me);
-        var placeHolder= $m.val() ? $m.val() : $m.text();
-        $m.closest('ul').find('li').removeClass('active');
-        $m.closest('li').addClass('active');
-        $m.closest('div.input-group').find('input[type=text]').attr("placeholder", placeHolder);
-    },
-    toggleSearchMode: function(me){
-        $(me).closest('div[role=search]').find('div.search-block').toggle();
+        $.ajax(url, settings);
     }
-};
 
-// does nothing more than extend jQuery
-jQuery.fn.magiGrid = function(options){
-    var $magiGrid= new MagiGrid(this, options)
-    return $magiGrid;
-}
+    function MagiDaoException(jqXHR, textStatus, errorThrown){
+        alert('Failed to Connect the backend services.')
+    }
 
+    function getMagiMsg(errType, ref){
+        if(!errType)
+            return MagiMsg['UnknownError'];
+        var msg= MagiMsg[errType];
+        if(!msg)
+            return MagiMsg['UnknownError'] + ': '+ errType;
+        if(ref)
+            for(var i= 0; i< ref.length; i++){
+                var re= eval('/{'+ (i+1) + '}/gm');
+                msg= msg.replace(re, ref[i]);
+            }
+        return msg;
+    }
 
+    function checkEnv(){
+        //todo check browser
+        if( typeof MagiSetting == 'undefined' || !MagiSetting.appName || !MagiSetting.endPoint ){
+            console.log('ERROR: magiConfig.js is not found or incorrect!');
+            alert('ERROR: magiConfig.js is not found or incorrect!');//todo i18n
+        }
+    }
+    //attach app, load app data moder, and ref data to MagiCache
+    function initData(){
+        //to do retrieve data schema by web service
+        var dataModels= $.ajax({url:MagiSetting.endPoint+ 'schema',async:false, error: MagiDaoException});
+
+        if(dataModels.length==0) {
+            alert(getMagiMsg("DataSchemaNoFound", app));
+            return;
+        }
+
+        MagiDataModels[app]= dataModels;
+        //todo load cache
+        var cacheTables= [];
+        $.each( dataModels.tables, function(){
+            if(this.cacheable){
+                cacheTables.push(this.name);
+            }
+        });
+        MagiDataCache[app]= cacheTables;
+        console.log('Cached tables: '+ cacheTables.join());
+    }
+
+    return {
+
+        getEndPoint: function(extModule){
+            if(extModule)
+                return MagiSetting.extEndPoints[extModule];
+            else
+                return MagiSetting.endPoint;
+        },
+        getDataModel: function(tableName, appName){
+            var app= appName? appName : MagiSetting.appName;
+            return MagiDataModels[app]
+        },
+        getDataTable: function(tableName, appName){
+            var app= appName? appName : MagiSetting.appName;
+            return MagiDataModels[app][tableName];
+        },
+        isCached: function(tableName, appName){
+            var app= appName? appName : MagiSetting.appName;
+            if(MagiDataCache[app] && MagiDataCache[app][tableName])
+                return true;
+        },
+        getCachedTable: function(tableName, appName){
+            var app= appName? appName : MagiSetting.appName;
+            if(MagiDataCache[app])
+                return MagiDataCache[app][tableName];
+            return null;
+        },
+        getCachedEntry: function(tableName, fieldValue, fieldName, appName){
+            var app= appName? appName : MagiSetting.appName;
+            var field= fieldName ? fieldName : 'id';
+            if(MagiDataCache[app] && MagiDataCache[app][tableName]){
+                for(var i=0; i++; i< MagiDataCache[app][tableName].length){
+                    var entry= MagiDataCache[app][tableName][i];
+                    if(entry[field] == fieldValue)
+                        return entry;
+                }
+            }
+            return null;
+        },
+        findDataRow: function(dataTable, id, succHandle, errHandle, app){
+            if(MagiDao.isCached(dataTable, app)){
+                succHandle( MagiDao.getCachedEntry(dataTable, id, app) );
+                return;
+            }
+            MagiAjax(MagiDao.getEndPoint() + dataTable + '/' + id, {success: succHandle, error: errHandle});
+        },
+        findDataList: function(dataTable, options, succHandle, errHandle, app){
+            if(MagiDao.isCached(dataTable, app)){
+                succHandle( MagiDao.getCachedTable(dataTable, app) );
+                return;
+            }
+            MagiAjax(MagiDao.getEndPoint(app) + dataTable, {data: options, success: succHandle, error: errHandle});
+        },
+        postData: function(dataTable, entry, succHandle, errHandle, app){
+            MagiAjax(MagiDao.getEndPoint(app) + dataTable, {type: 'POST', data: entry, success: succHandle, error: errHandle});
+        },
+        putData: function(dataTable, id, entry, succHandle, errHandle, app){
+            MagiAjax(MagiDao.getEndPoint(app) + dataTable+ '/' + id, {type: 'PUT', data: entry, success: succHandle, error: errHandle});
+        },
+        deleteData: function(dataTable, id, succHandle, errHandle, app){
+            MagiAjax(MagiDao.getEndPoint(app) + dataTable+ '/' + id, {type: 'DELETE', success: succHandle, error: errHandle});
+        },
+        /**
+         *
+         * @param persistRequests  [{tableName:'xx', data: 'id or entry'}, opr: 'INSERT/UPDATE/DELETE'}]
+         * @param succHandle
+         * @param errHandle
+         * @param app
+         */
+        batchPersist: function(persistRequests, succHandle, errHandle, app){
+            MagiAjax(MagiDao.getEndPoint(app) + 'batchPersist', {type: 'POST', data: persistRequests, success: succHandle, error: errHandle});
+        }
+    };
+
+});
