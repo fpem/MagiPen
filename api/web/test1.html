@@ -1,6 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="res/bootstrap/css/bootstrap.css">
+    <link rel="stylesheet" href="res/bootstrap/css/bootstrap-theme.css">
+    <style>
+        table.table tbody tr.active.selected td{
+            background-color: #428bca;
+        }
+        table.table tbody tr.selected td{
+            background-color: #428bca;
+        }
+        div.magiGrid thead span{
+            width:8px;margin-left:0;display: inline-block;
+        }
+    </style>
+
+    <script src="res/jquery-2.1.1.min.js"></script>
+    <script src="res/bootstrap/js/bootstrap.min.js"></script>
+    <script src="js/magi.js"></script>
+    <script src="js/magiConfig.js"></script>
+    <script src="js/magiDao.js"></script>
+    <script src="js/magiTag.js"></script>
+	
+    <script>
+
+        $(function(){
+			
+            var grid= $('.magiGrid').magiGrid();
+			grid.search();
+            //initMagiDropdown();
+        });
+    </script>
+</head>
 <body data-app="SalavtionMng">  
     <div class="container">
-        <div class="magiGrid" data-model="Resident">
+        <div class="magiGrid" data-table-name="Server" data-page-size="5"
+			data-searchable="true" data-creatable="true" data-editable="true" data-deletable="false" data-customizable="false">
         </div>
     </div>
+	
+
 </body>
