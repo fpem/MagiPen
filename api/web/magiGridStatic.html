@@ -18,15 +18,20 @@
         div.magiGrid thead span{
             width:8px;margin-left:0;display: inline-block;
         }
+		ul.dropdown-menu li.noclose{
+			padding-left: 20px;
+		}
     </style>
 
+	<!--<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script> -->
     <script src="res/jquery-2.1.1.min.js"></script>
     <!-- Latest compiled and minified JavaScript -->
     <script src="res/bootstrap/js/bootstrap.min.js"></script>
+	
     <script>
         function renderGrid(gridElement){
             var $magiGrid= $(gridElement);
-            var dataModel= $magiGrid.data('dataModel');
+            var dataModel= $magiGrid.data('model');
             var rows= $magiGrid.data('rows');
             var pageNum= $magiGrid.data('pageNum');
             var totalRow= $magiGrid.data('totalRow');
@@ -189,8 +194,13 @@
         }
 
         $(function(){
-            renderGrid('.magiGrid');
+            renderGrid('div.magiGrid');
             initMagiDropdown();
+			
+			$('li.noclose').off('click').on('click', function (e) {
+				e.stopPropagation();
+			});
+			
         });
     </script>
 </head>
@@ -198,13 +208,13 @@
 <div class="container magiGrid"
      data-table="Resident" data-page-size='10' data-page-num='1'
      data-searchable="true" data-addable="true" data-editable="true"  data-deletable="true" data-customizable="true"
-     data-data-model='{"name":"Resident", "columns":[{"name":"id","dataType":"ID"},{"name":"name","dataType":"CHAR"},{"name":"idCard","dataType":"CHAR"}]}'
+     data-model='{"name":"Resident", "columns":[{"name":"id","dataType":"ID"},{"name":"name","dataType":"CHAR"},{"name":"idCard","dataType":"CHAR"}]}'
      data-rows='[{"id":1,"name":"Albert","idCard":"111111111"},{"id":2,"name":"Ben","idCard":"2222222"},{"id":3,"name":"Charlie","idCard":"33333333"},{"id":4,"name":"Denies","idCard":"4444444"},{"id":5,"name":"Ella","idCard":"55555"},{"id":6,"name":"Fram","idCard":"6666"},{"id":7,"name":"Gavin","idCard":"7777"},{"id":8,"name":"Hawk","idCard":"8888"},{"id":9,"name":"Inn","idCard":"99999"},{"id":10,"name":"John","idCard":"10000"}]'
      data-total-row='180'>
 
-    <div class="row">
+    <div class="row  magigrid-top">
         <div class="col-sm-6" role="heading">
-            <h2>Data list</h2>
+            <h2>Data list</h2>					  
         </div>
         <div class="col-sm-6 input-group" role="search" style="margin-top:25px;padding-right: 15px;">
             <div class="input-group search-block">
@@ -218,12 +228,21 @@
                         <li class="active"><a href="#" onclick="changeSearchField(this)">type Name to search</a></li>
                         <li><a href="#" onclick="changeSearchField(this)">type Code to search</a></li>
                         <li><a href="#" onclick="changeSearchField(this)">type ID Card to search</a></li>
+                        <li><a href="#" onclick="changeSearchField(this)">search in all columns</a></li>
+                        <li class="divider noclose"></li>
+						
+                        <li class="noclose"><label for="cbIgnoreCase"><input type="checkbox" id="cbIgnoreCase" name="ignoreCase"/>ignore case</label></li>
+                        <li class="noclose"><span>Match type:</span>
+                        <li class="noclose">
+							<label><input type="radio" name="operation"/>equals</label>
+							<label><input type="radio" name="operation"/>startWith</label>
+							<label><input type="radio" name="operation"/>contains</label>
+						</li>
                     </ul>
                 </div><!-- /btn-group -->
             </div>
 
             <div class="search-block" style="display:none">
-
                 <form class="form-inline" role="form">
                     <div class="form-group pull-right">
                         <select name="field" class="form-control magi-dropdown" data-values='["Name","Code", "Id Card"]' style="width: 150px;"></select>
@@ -258,17 +277,16 @@
             <tbody>
             </tbody>
         </table>
-
         <div class="alert alert-danger" style="display:none" role="alert"></div>
     </div>
 
-    <div class="row">
-        <div class="col-sm-6">
+    <div class="row magigrid-bottoem">
+        <div class="col-sm-6 magigrid-tools">
             <button type="button" class="btn btn-primary">Create</button>
             <button type="button" class="btn btn-primary">Edit</button>
             <button type="button" class="btn btn-primary">Delete</button>
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-6 magigrid-pager">
             <ul class="pagination pull-right" role="navigation" style="margin:0;"></ul>
         </div>
     </div>
